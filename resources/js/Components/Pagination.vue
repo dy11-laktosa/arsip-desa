@@ -5,6 +5,14 @@ defineProps({
         required: true,
     },
 });
+
+const emit = defineEmits(['page-change']);
+
+const handlePageChange = (url) => {
+    if (url) {
+        emit('page-change', url);
+    }
+};
 </script>
 
 <template>
@@ -15,9 +23,10 @@ defineProps({
                 class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 cursor-default"
                 v-html="link.label"
             />
-            <Link
+            <a
                 v-else
                 :href="link.url"
+                @click.prevent="handlePageChange(link.url)"
                 class="relative inline-flex items-center px-4 py-2 text-sm font-medium border"
                 :class="[
                     link.active

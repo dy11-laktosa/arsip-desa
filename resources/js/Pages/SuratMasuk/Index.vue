@@ -1,16 +1,16 @@
 {/* Index.vue */}
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Modal from '@/Components/Modal.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import Pagination from '@/Components/Pagination.vue';
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { Head, Link, router, useForm } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import Modal from "@/Components/Modal.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import TextInput from "@/Components/TextInput.vue";
+import InputError from "@/Components/InputError.vue";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
+import SecondaryButton from "@/Components/SecondaryButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
+import Pagination from "@/Components/Pagination.vue";
 import {
     MagnifyingGlassIcon,
     PlusIcon,
@@ -21,22 +21,22 @@ import {
     TrashIcon,
     DocumentIcon,
     ArrowDownTrayIcon,
-    ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline';
+    ExclamationTriangleIcon,
+} from "@heroicons/vue/24/outline";
 
 // Props
 const props = defineProps({
     suratMasuk: {
         type: Object,
-        required: true
+        required: true,
     },
     filters: {
         type: Object,
         default: () => ({
-            start_date: '',
-            end_date: '',
-            per_page: 10
-        })
+            start_date: "",
+            end_date: "",
+            per_page: 10,
+        }),
     },
     permissions: {
         type: Object,
@@ -45,18 +45,19 @@ const props = defineProps({
             canCreate: false,
             canEdit: false,
             canDelete: false,
-            canView: true
-        })
-    }
+            canView: true,
+        }),
+    },
 });
 
 // Refs for search, filters, and pagination
-const search = ref('');
-const startDate = ref(props.filters.start_date || '');
-const endDate = ref(props.filters.end_date || '');
-const perPage = ref(props.filters.per_page?.toString() || '10');
-const sortField = ref('tgl_sm');
-const sortDirection = ref('desc');
+const search = ref("");
+const startDate = ref(props.filters.start_date || "");
+const endDate = ref(props.filters.end_date || "");
+const perPage = ref(props.filters.per_page?.toString() || "10");
+const sortField = ref("tgl_sm");
+const sortDirection = ref("desc");
+const currentPage = ref(props.suratMasuk.current_page || 1);
 
 // Modal states
 const showCreateModal = ref(false);
@@ -66,9 +67,9 @@ const showViewModal = ref(false);
 const selectedSurat = ref(null);
 
 // File states
-const previewUrl = ref('');
+const previewUrl = ref("");
 const fileInput = ref(null);
-const uploadMethod = ref('file');
+const uploadMethod = ref("file");
 const video = ref(null);
 const imageCaptured = ref(false);
 const capturedImage = ref(null);
@@ -76,27 +77,27 @@ let stream = null;
 
 // Pagination options
 const perPageOptions = [
-    { label: '10', value: '10' },
-    { label: '15', value: '15' },
-    { label: '25', value: '25' },
-    { label: '50', value: '50' }
+    { label: "10", value: "10" },
+    { label: "15", value: "15" },
+    { label: "25", value: "25" },
+    { label: "50", value: "50" },
 ];
 
 // Forms
 const createForm = useForm({
-    no_asal: '',
-    tgl_no_asal: '',
-    penerima: '',
-    pengirim: '',
-    perihal: '',
-    lampiran: null
+    no_asal: "",
+    tgl_no_asal: "",
+    penerima: "",
+    pengirim: "",
+    perihal: "",
+    lampiran: null,
 });
 
 const editForm = useForm({
-    tgl_no_asal: '',
-    penerima: '',
-    pengirim: '',
-    perihal: ''
+    tgl_no_asal: "",
+    penerima: "",
+    pengirim: "",
+    perihal: "",
 });
 
 // Computed Properties
@@ -104,17 +105,20 @@ const filteredSuratMasuk = computed(() => {
     if (!search.value) return props.suratMasuk.data;
 
     const searchTerm = search.value.toLowerCase();
-    return props.suratMasuk.data.filter(surat =>
-        surat.no_surat?.toLowerCase().includes(searchTerm) ||
-        surat.perihal?.toLowerCase().includes(searchTerm) ||
-        surat.pengirim?.toLowerCase().includes(searchTerm)
+    return props.suratMasuk.data.filter(
+        (surat) =>
+            surat.no_surat?.toLowerCase().includes(searchTerm) ||
+            surat.perihal?.toLowerCase().includes(searchTerm) ||
+            surat.pengirim?.toLowerCase().includes(searchTerm)
     );
 });
+
+const totalPages = computed(() => props.suratMasuk.last_page);
 
 // Methods
 const updateFilters = () => {
     router.get(
-        route('surat-masuk.index'),
+        route("surat-masuk.index"),
         {
             search: search.value,
             start_date: startDate.value,
@@ -122,7 +126,7 @@ const updateFilters = () => {
             per_page: perPage.value,
             sort_field: sortField.value,
             sort_direction: sortDirection.value,
-            page: 1, // Reset to first page when filters change
+            page: currentPage.value, // Reset to first page when filters change
         },
         {
             preserveState: true,
@@ -131,27 +135,44 @@ const updateFilters = () => {
     );
 };
 
+const goToPreviousPage = () => {
+    if (currentPage.value > 1) {
+        currentPage.value--;
+        updateFilters();
+    }
+};
+
+const goToNextPage = () => {
+    if (currentPage.value < totalPages.value) {
+        currentPage.value++;
+        updateFilters();
+    }
+};
+
+
 const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
         createForm.lampiran = file;
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
             previewUrl.value = URL.createObjectURL(file);
         } else {
-            previewUrl.value = '';
+            previewUrl.value = "";
         }
     }
 };
 
 const submitCreate = () => {
-    createForm.post(route('surat-masuk.store'), {
+    createForm.post(route("surat-masuk.store"), {
         preserveScroll: true,
         onSuccess: () => {
             showCreateModal.value = false;
             createForm.reset();
-            previewUrl.value = '';
+            captureImage.value = null;
+            previewUrl.value = "";
+            imageCaptured.value = false;
             if (fileInput.value) {
-                fileInput.value.value = '';
+                fileInput.value.value = "";
             }
         },
     });
@@ -167,7 +188,7 @@ const editSurat = (surat) => {
 };
 
 const submitEdit = () => {
-    editForm.put(route('surat-masuk.update', selectedSurat.value.id), {
+    editForm.put(route("surat-masuk.update", selectedSurat.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showEditModal.value = false;
@@ -188,7 +209,7 @@ const confirmDelete = (surat) => {
 };
 
 const submitDelete = () => {
-    useForm({}).delete(route('surat-masuk.destroy', selectedSurat.value.id), {
+    useForm({}).delete(route("surat-masuk.destroy", selectedSurat.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showDeleteModal.value = false;
@@ -199,35 +220,37 @@ const submitDelete = () => {
 
 const toggleSort = (field) => {
     if (sortField.value === field) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+        sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
     } else {
         sortField.value = field;
-        sortDirection.value = 'asc';
+        sortDirection.value = "asc";
     }
     updateFilters();
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const parts = dateString.split('-');
+    if (!dateString) return "-";
+    const parts = dateString.split("-");
     if (parts.length !== 3) return dateString;
-    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    const date = new Date(`${parts[1]}-${parts[2]}-${parts[0]}`);
     if (isNaN(date.getTime())) return dateString;
-    return date.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
+    return date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
     });
 };
 
 // Camera handling
 const isMobile = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
 };
 
 const stopCamera = () => {
     if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         stream = null;
     }
     if (video.value) {
@@ -236,11 +259,11 @@ const stopCamera = () => {
 };
 
 const captureImage = () => {
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = video.value.videoWidth;
     canvas.height = video.value.videoHeight;
-    canvas.getContext('2d').drawImage(video.value, 0, 0);
-    capturedImage.value = canvas.toDataURL('image/jpeg');
+    canvas.getContext("2d").drawImage(video.value, 0, 0);
+    capturedImage.value = canvas.toDataURL("image/jpeg");
     imageCaptured.value = true;
 };
 
@@ -251,9 +274,11 @@ const retakePhoto = () => {
 
 const usePhoto = () => {
     fetch(capturedImage.value)
-        .then(res => res.blob())
-        .then(blob => {
-            const file = new File([blob], "captured-image.jpg", { type: "image/jpeg" });
+        .then((res) => res.blob())
+        .then((blob) => {
+            const file = new File([blob], "captured-image.jpg", {
+                type: "image/jpeg",
+            });
             createForm.lampiran = file;
             previewUrl.value = URL.createObjectURL(file);
         });
@@ -262,16 +287,16 @@ const usePhoto = () => {
 
 // Watchers
 watch(uploadMethod, async (newValue) => {
-    if (newValue === 'camera') {
+    if (newValue === "camera") {
         try {
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: isMobile() ? 'environment' : 'user' }
+                video: { facingMode: isMobile() ? "environment" : "user" },
             });
             if (video.value) {
                 video.value.srcObject = stream;
             }
         } catch (err) {
-            console.error('Error accessing camera:', err);
+            console.error("Error accessing camera:", err);
         }
     } else {
         stopCamera();
@@ -296,6 +321,14 @@ onBeforeUnmount(() => {
     }
     stopCamera();
 });
+
+const handlePageChange = (url) => {
+    const page = new URL(url).searchParams.get('page');
+    if (page) {
+        currentPage.value = parseInt(page);
+        updateFilters();
+    }
+};
 </script>
 
 <template>
@@ -321,17 +354,21 @@ onBeforeUnmount(() => {
         <div class="py-6">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <!-- Search and Filters Section -->
-                <div class="mb-6 bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row gap-4">
+                <div
+                    class="mb-6 bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row gap-4"
+                >
                     <div class="flex-1 flex flex-col sm:flex-row gap-4">
                         <!-- Search input -->
                         <div class="relative flex-1">
-                            <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <MagnifyingGlassIcon
+                                class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                            />
                             <input
                                 type="text"
                                 v-model="search"
                                 placeholder="Cari surat masuk..."
                                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
+                            />
                         </div>
 
                         <!-- Date range filter -->
@@ -340,22 +377,26 @@ onBeforeUnmount(() => {
                                 type="date"
                                 v-model="startDate"
                                 class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
+                            />
                             <span class="text-gray-500">to</span>
                             <input
                                 type="date"
                                 v-model="endDate"
                                 class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
+                            />
                         </div>
 
                         <!-- Entries per page dropdown -->
                         <div class="flex items-center space-x-2">
                             <select
                                 v-model="perPage"
-                                class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="border border-gray-300 rounded-lg  py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option v-for="option in perPageOptions" :key="option.value" :value="option.value">
+                                <option
+                                    v-for="option in perPageOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
                                     {{ option.label }}
                                 </option>
                             </select>
@@ -369,7 +410,9 @@ onBeforeUnmount(() => {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
                                         No
                                     </th>
                                     <th
@@ -378,13 +421,19 @@ onBeforeUnmount(() => {
                                     >
                                         No. Surat
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
                                         Perihal
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
                                         Pengirim
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
                                         Penerima
                                     </th>
                                     <th
@@ -393,28 +442,42 @@ onBeforeUnmount(() => {
                                     >
                                         Tanggal
                                     </th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
                                         Aksi
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="(surat, index) in filteredSuratMasuk"
+                                <tr
+                                    v-for="(surat, index) in filteredSuratMasuk"
                                     :key="surat.id"
                                     class="hover:bg-gray-50 transition-colors"
                                 >
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {{ (suratMasuk.current_page - 1) * suratMasuk.per_page + index + 1 }}
+                                        <div
+                                            class="text-sm font-medium text-gray-900"
+                                        >
+                                            {{
+                                                (suratMasuk.current_page - 1) *
+                                                    suratMasuk.per_page +
+                                                index +
+                                                1
+                                            }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
+                                        <div
+                                            class="text-sm font-medium text-gray-900"
+                                        >
                                             {{ surat.no_surat }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900 line-clamp-2">
+                                        <div
+                                            class="text-sm text-gray-900 line-clamp-2"
+                                        >
                                             {{ surat.perihal }}
                                         </div>
                                     </td>
@@ -433,8 +496,12 @@ onBeforeUnmount(() => {
                                             {{ formatDate(surat.tgl_no_asal) }}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex items-center justify-end gap-2">
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                                    >
+                                        <div
+                                            class="flex items-center justify-end gap-2"
+                                        >
                                             <button
                                                 @click="viewSurat(surat)"
                                                 class="text-blue-600 hover:text-blue-900"
@@ -448,7 +515,9 @@ onBeforeUnmount(() => {
                                                 class="text-yellow-600 hover:text-yellow-900"
                                                 title="Edit surat"
                                             >
-                                                <PencilSquareIcon class="w-5 h-5" />
+                                                <PencilSquareIcon
+                                                    class="w-5 h-5"
+                                                />
                                             </button>
                                             <button
                                                 v-if="permissions.canDelete"
@@ -467,41 +536,52 @@ onBeforeUnmount(() => {
                 </div>
 
                 <!-- Pagination -->
-                <div class="mt-4 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div
+                    class="mt-4 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6"
+                >
                     <div class="flex-1 flex justify-between sm:hidden">
-                        <Link
-                            v-if="suratMasuk.prev_page_url"
-                            :href="suratMasuk.prev_page_url"
+                        <button
+                            @click="goToPreviousPage"
+                            :disabled="currentPage === 1"
                             class="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                         >
                             Previous
-                        </Link>
-                        <Link
-                            v-if="suratMasuk.next_page_url"
-                            :href="suratMasuk.next_page_url"
+                        </button>
+                        <button
+                            @click="goToNextPage"
+                            :disabled="currentPage === totalPages"
                             class="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                         >
                             Next
-                        </Link>
+                        </button>
                     </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div
+                        class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between"
+                    >
                         <div>
                             <p class="text-sm text-gray-700">
                                 Showing
-                                <span class="font-medium">{{ suratMasuk.from }}</span>
+                                <span class="font-medium">{{
+                                    suratMasuk.from
+                                }}</span>
                                 to
-                                <span class="font-medium">{{ suratMasuk.to }}</span>
+                                <span class="font-medium">{{
+                                    suratMasuk.to
+                                }}</span>
                                 of
-                                <span class="font-medium">{{ suratMasuk.total }}</span>
+                                <span class="font-medium">{{
+                                    suratMasuk.total
+                                }}</span>
                                 results
                             </p>
                         </div>
-                        <Pagination :links="suratMasuk.links" />
+                        <Pagination :links="suratMasuk.links" @page-change="handlePageChange" />
                     </div>
                 </div>
 
                 <!-- Empty State -->
-                <div v-if="filteredSuratMasuk.length === 0"
+                <div
+                    v-if="filteredSuratMasuk.length === 0"
                     class="text-center py-12 bg-white rounded-lg shadow mt-6"
                 >
                     <EnvelopeIcon class="mx-auto h-12 w-12 text-gray-400" />
@@ -509,7 +589,11 @@ onBeforeUnmount(() => {
                         Tidak ada surat masuk
                     </h3>
                     <p class="mt-1 text-sm text-gray-500">
-                        {{ search ? 'Tidak ada surat yang sesuai dengan pencarian.' : 'Mulai dengan menambahkan surat masuk baru.' }}
+                        {{
+                            search
+                                ? "Tidak ada surat yang sesuai dengan pencarian."
+                                : "Mulai dengan menambahkan surat masuk baru."
+                        }}
                     </p>
                     <div class="mt-6">
                         <button
@@ -526,7 +610,11 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Create Modal -->
-        <Modal :show="showCreateModal" title="Tambah Surat Masuk" @close="showCreateModal = false">
+        <Modal
+            :show="showCreateModal"
+            title="Tambah Surat Masuk"
+            @close="showCreateModal = false"
+        >
             <form @submit.prevent="submitCreate" class="space-y-4">
                 <div>
                     <InputLabel for="no_asal" value="Nomor Surat" />
@@ -603,7 +691,7 @@ onBeforeUnmount(() => {
                                     v-model="uploadMethod"
                                     value="file"
                                     class="form-radio text-blue-600"
-                                >
+                                />
                                 <span class="ml-2">Upload File</span>
                             </label>
                             <label class="flex items-center">
@@ -612,7 +700,7 @@ onBeforeUnmount(() => {
                                     v-model="uploadMethod"
                                     value="camera"
                                     class="form-radio text-blue-600"
-                                >
+                                />
                                 <span class="ml-2">Ambil Foto</span>
                             </label>
                         </div>
@@ -635,7 +723,11 @@ onBeforeUnmount(() => {
                                 <span>Pilih File</span>
                             </label>
                             <p class="mt-1 text-sm text-gray-500">
-                                {{ createForm.lampiran ? createForm.lampiran.name : 'Tidak ada file dipilih' }}
+                                {{
+                                    createForm.lampiran
+                                        ? createForm.lampiran.name
+                                        : "Tidak ada file dipilih"
+                                }}
                             </p>
                         </div>
 
@@ -705,13 +797,17 @@ onBeforeUnmount(() => {
                     :disabled="createForm.processing"
                     @click="submitCreate"
                 >
-                    {{ createForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                    {{ createForm.processing ? "Menyimpan..." : "Simpan" }}
                 </PrimaryButton>
             </template>
         </Modal>
 
         <!-- Edit Modal -->
-        <Modal :show="showEditModal" title="Edit Surat Masuk" @close="showEditModal = false">
+        <Modal
+            :show="showEditModal"
+            title="Edit Surat Masuk"
+            @close="showEditModal = false"
+        >
             <form @submit.prevent="submitEdit" class="space-y-4">
                 <div>
                     <InputLabel for="edit_tgl_no_asal" value="Tanggal Surat" />
@@ -773,46 +869,76 @@ onBeforeUnmount(() => {
                     :disabled="editForm.processing"
                     @click="submitEdit"
                 >
-                    {{ editForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                    {{ editForm.processing ? "Menyimpan..." : "Simpan" }}
                 </PrimaryButton>
             </template>
         </Modal>
 
         <!-- View Modal -->
-        <Modal :show="showViewModal" title="Detail Surat Masuk" @close="showViewModal = false">
+        <Modal
+            :show="showViewModal"
+            title="Detail Surat Masuk"
+            @close="showViewModal = false"
+        >
             <div class="space-y-4" v-if="selectedSurat">
                 <div>
-                    <h4 class="text-sm font-medium text-gray-500">Nomor Surat</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.no_surat }}</p>
+                    <h4 class="text-sm font-medium text-gray-500">
+                        Nomor Surat
+                    </h4>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.no_surat }}
+                    </p>
                 </div>
 
                 <div>
-                    <h4 class="text-sm font-medium text-gray-500">Tanggal Surat</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedSurat.tgl_ns) }}</p>
+                    <h4 class="text-sm font-medium text-gray-500">
+                        Tanggal Surat
+                    </h4>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ formatDate(selectedSurat.tgl_ns) }}
+                    </p>
                 </div>
 
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Pengirim</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.pengirim }}</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.pengirim }}
+                    </p>
                 </div>
 
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Penerima</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.penerima }}</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.penerima }}
+                    </p>
                 </div>
 
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Perihal</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.perihal }}</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.perihal }}
+                    </p>
                 </div>
 
-                <div v-if="selectedSurat.lampiran && selectedSurat.lampiran.length > 0">
+                <div
+                    v-if="
+                        selectedSurat.lampiran &&
+                        selectedSurat.lampiran.length > 0
+                    "
+                >
                     <h4 class="text-sm font-medium text-gray-500">Lampiran</h4>
                     <div class="mt-1 flex items-center space-x-2">
                         <DocumentIcon class="h-5 w-5 text-gray-400" />
-                        <span class="text-sm text-gray-900">{{ selectedSurat.lampiran[0].nama_berkas }}</span>
+                        <span class="text-sm text-gray-900">{{
+                            selectedSurat.lampiran[0].nama_berkas
+                        }}</span>
                         <a
-                            :href="route('surat-masuk.download-lampiran', selectedSurat.id)"
+                            :href="
+                                route(
+                                    'surat-masuk.download-lampiran',
+                                    selectedSurat.id
+                                )
+                            "
                             class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
                             download
                         >
@@ -831,12 +957,20 @@ onBeforeUnmount(() => {
         </Modal>
 
         <!-- Delete Confirmation Modal -->
-        <Modal :show="showDeleteModal" title="Konfirmasi Hapus" @close="showDeleteModal = false">
+        <Modal
+            :show="showDeleteModal"
+            title="Konfirmasi Hapus"
+            @close="showDeleteModal = false"
+        >
             <div class="p-6">
-                <ExclamationTriangleIcon class="h-12 w-12 text-red-600 mx-auto" />
+                <ExclamationTriangleIcon
+                    class="h-12 w-12 text-red-600 mx-auto"
+                />
                 <p class="mt-4 text-center text-gray-700">
-                    Apakah Anda yakin ingin menghapus surat masuk ini?<br>
-                    <span class="font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+                    Apakah Anda yakin ingin menghapus surat masuk ini?<br />
+                    <span class="font-medium"
+                        >Tindakan ini tidak dapat dibatalkan.</span
+                    >
                 </p>
             </div>
 

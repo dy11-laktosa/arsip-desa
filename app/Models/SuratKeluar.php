@@ -15,29 +15,15 @@ class SuratKeluar extends Model
         'pengirim',
         'penerima',
         'perihal',
-        'bagian_id',
         'token_lampiran',
         'user_id',
-        'dibaca',
-        'disposisi',
-        'peringatan',
         'tgl_sk'
-    ];
-
-    protected $casts = [
-        'dibaca' => 'boolean',
-        'peringatan' => 'boolean',
     ];
 
     // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function bagian()
-    {
-        return $this->belongsTo(Bagian::class);
     }
 
     public function lampiran()

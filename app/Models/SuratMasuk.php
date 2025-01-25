@@ -18,15 +18,8 @@ class SuratMasuk extends Model
         'penerima',
         'perihal',
         'token_lampiran',
-        'dibaca',
-        'disposisi',
         'user_id',
         'tgl_sm'
-    ];
-
-    protected $casts = [
-        'dibaca' => 'boolean',
-        'disposisi' => 'boolean',
     ];
 
     // Relationships

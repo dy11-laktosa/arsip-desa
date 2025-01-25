@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\SuratMasuk;
 use App\Models\Lampiran;
 use App\Models\User;
-use App\Models\Bagian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -65,11 +64,9 @@ class SuratMasukController extends Controller
         $perPage = $request->input('per_page', 10);
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+        $page = $request->input('page', 1);
 
         $query = SuratMasuk::with(['user', 'lampiran'])
-            ->when(!$isSekdes, function ($query) use ($user) {
-                return $query->where('user_id', $user->id);
-            })
             ->when($startDate, function ($query) use ($startDate) {
                 return $query->whereDate('tgl_no_asal', '>=', $startDate);
             })
@@ -78,7 +75,7 @@ class SuratMasukController extends Controller
             })
             ->orderBy('id', 'DESC');
 
-        $suratMasuk = $query->paginate($perPage);
+            $suratMasuk = $query->paginate($perPage, ['*'], 'page', $page);
 
         return Inertia::render('SuratMasuk/Index', [
             'suratMasuk' => $suratMasuk,
@@ -86,7 +83,8 @@ class SuratMasukController extends Controller
             'filters' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'per_page' => $perPage
+                'per_page' => $perPage,
+                'page' => $page
             ]
         ]);
     }
@@ -137,7 +135,6 @@ class SuratMasukController extends Controller
             'perihal' => $request->perihal,
             'token_lampiran' => $token,
             'user_id' => Auth::id(), // Set to current user ID (Sekdes)
-            'dibaca' => 0,
             'tgl_sm' => now()->format('d-m-Y')
         ]);
 
@@ -165,11 +162,6 @@ class SuratMasukController extends Controller
     public function show(SuratMasuk $suratMasuk)
     {
         $this->authorize('view', $suratMasuk);
-
-        // Mark as read if user is recipient
-        if (Auth::id() === $suratMasuk->user_id) {
-            $suratMasuk->update(['dibaca' => 1]);
-        }
 
         return Inertia::render('SuratMasuk/Show', [
             'suratMasuk' => $suratMasuk->load(['user', 'lampiran']),
@@ -240,20 +232,6 @@ class SuratMasukController extends Controller
 
         return redirect()->route('surat-masuk.index')
             ->with('message', 'Surat masuk berhasil dihapus');
-    }
-
-    /**
-     * Toggle the disposisi status of an incoming letter.
-     */
-    public function toggleDisposisi(SuratMasuk $suratMasuk)
-    {
-        $this->authorize('manageDisposisi', $suratMasuk);
-
-        $suratMasuk->update([
-            'disposisi' => !$suratMasuk->disposisi
-        ]);
-
-        return redirect()->back();
     }
 
     /**

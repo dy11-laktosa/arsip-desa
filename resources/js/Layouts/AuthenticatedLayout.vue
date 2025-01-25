@@ -1,10 +1,19 @@
 <script setup>
-import { Bars3Icon, XMarkIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/vue/24/outline';
-import { Link } from '@inertiajs/vue3';
-import { navigationItems, adminItems, userMenuItems } from '../constants/navigation';
-import { useSidebar } from '../composables/useSidebar';
-import SidebarLink from '@/Components/SidebarLink.vue';
-import '../../css/sidebar.css';
+import {
+    Bars3Icon,
+    XMarkIcon,
+    ChevronDoubleLeftIcon,
+    ChevronDoubleRightIcon,
+} from "@heroicons/vue/24/outline";
+import { Link } from "@inertiajs/vue3";
+import {
+    navigationItems,
+    adminItems,
+    userMenuItems,
+} from "../constants/navigation";
+import { useSidebar } from "../composables/useSidebar";
+import SidebarLink from "@/Components/SidebarLink.vue";
+import "../../css/sidebar.css";
 
 const { isOpen, isCollapsed, toggle, close, toggleCollapse } = useSidebar();
 </script>
@@ -23,14 +32,22 @@ const { isOpen, isCollapsed, toggle, close, toggleCollapse } = useSidebar();
             :class="[
                 'fixed inset-y-0 left-0 z-30 bg-gray-900 text-white transform transition-all duration-300 ease-in-out lg:translate-x-0',
                 isOpen ? 'translate-x-0' : '-translate-x-full',
-                isCollapsed ? 'w-20' : 'w-64'
+                isCollapsed ? 'w-20' : 'w-64',
             ]"
         >
             <!-- Sidebar header -->
-            <div class="flex items-center justify-between h-16 px-4 bg-gray-800">
-                <Link :href="route('users.index')" class="flex items-center space-x-2" :class="{ 'justify-center': isCollapsed }">
+            <div
+                class="flex items-center justify-between h-16 px-4 bg-gray-800"
+            >
+                <Link
+                    :href="route('users.index')"
+                    class="flex items-center space-x-2"
+                    :class="{ 'justify-center': isCollapsed }"
+                >
                     <img src="/img/logo-desa.png" class="w-8 h-8" alt="Logo" />
-                    <span class="text-lg font-semibold" v-show="!isCollapsed">E-ARSIP DESA</span>
+                    <span class="text-lg font-semibold" v-show="!isCollapsed"
+                        >E-ARSIP DESA</span
+                    >
                 </Link>
             </div>
 
@@ -123,10 +140,12 @@ const { isOpen, isCollapsed, toggle, close, toggleCollapse } = useSidebar();
         </aside>
 
         <!-- Main content -->
-        <div :class="[
-            'transition-all duration-300 ease-in-out',
-            isCollapsed ? 'lg:pl-20' : 'lg:pl-64'
-        ]">
+        <div
+            :class="[
+                'transition-all duration-300 ease-in-out',
+                isCollapsed ? 'lg:pl-20' : 'lg:pl-64',
+            ]"
+        >
             <!-- Mobile header -->
             <div class="sticky top-0 z-10 flex h-16 bg-white shadow lg:hidden">
                 <button

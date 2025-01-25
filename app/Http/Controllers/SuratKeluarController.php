@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SuratKeluar;
-use App\Models\Bagian;
 use App\Models\Lampiran;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -49,25 +48,47 @@ class SuratKeluarController extends Controller
     /**
      * Display list of surat keluar
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', SuratKeluar::class);
 
         $user = User::find(Auth::id());
         $isSekdes = $this->isSekdes();
 
-        $suratKeluar = SuratKeluar::with(['user', 'lampiran'])
-            ->when(!$isSekdes, function ($query) use ($user) {
-                return $query->where('user_id', $user->id);
+        $perPage = $request->input('per_page', 10);
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $page = $request->input('page', 1);
+        $search = $request->input('search');
+
+        $query = SuratKeluar::with(['user', 'lampiran'])
+            ->when($search, function ($query, $search) {
+                return $query->where('no_surat', 'like', "%{$search}%")
+                            ->orWhere('perihal', 'like', "%{$search}%")
+                            ->orWhere('pengirim', 'like', "%{$search}%")
+                            ->orWhere('penerima', 'like', "%{$search}%");
             })
-            ->orderBy('id', 'DESC')
-            ->get();
+            ->when($startDate, function ($query, $startDate) {
+                return $query->whereDate('tgl_ns', '>=', $startDate);
+            })
+            ->when($endDate, function ($query, $endDate) {
+                return $query->whereDate('tgl_ns', '<=', $endDate);
+            })
+            ->orderBy('id', 'DESC');
+
+        $suratKeluar = $query->paginate($perPage);
 
         return Inertia::render('SuratKeluar/Index', [
             'suratKeluar' => $suratKeluar,
-            'permissions' => $this->checkPermissions()
+            'permissions' => $this->checkPermissions(),
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'per_page' => $perPage,
+                'search' => $search,
+            ],
         ]);
-    }
+}
 
     /**
      * Store surat keluar
@@ -98,8 +119,6 @@ class SuratKeluarController extends Controller
             'perihal' => $request->perihal,
             'token_lampiran' => $token,
             'user_id' => Auth::id(),
-            'dibaca' => 0,
-            'disposisi' => '',
             'peringatan' => 0,
             'tgl_sk' => now()->format('d-m-Y')
         ]);

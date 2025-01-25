@@ -1,33 +1,41 @@
-{/* Index.vue */}
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Modal from '@/Components/Modal.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import TextInput from '@/Components/TextInput.vue';
-import InputError from '@/Components/InputError.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
+import { ref, computed, watch } from "vue";
+import { Head, Link, router, useForm } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import Modal from "@/Components/Modal.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import TextInput from "@/Components/TextInput.vue";
+import InputError from "@/Components/InputError.vue";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
+import SecondaryButton from "@/Components/SecondaryButton.vue";
+import DangerButton from "@/Components/DangerButton.vue";
+import Pagination from "@/Components/Pagination.vue";
 import {
     MagnifyingGlassIcon,
     PlusIcon,
     EnvelopeIcon,
-    EnvelopeOpenIcon,
     EyeIcon,
     PencilSquareIcon,
     TrashIcon,
     DocumentIcon,
     ArrowDownTrayIcon,
-    ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline';
+    ExclamationTriangleIcon,
+} from "@heroicons/vue/24/outline";
 
 // Props
 const props = defineProps({
     suratKeluar: {
-        type: Array,
-        required: true
+        type: Object,
+        required: true,
+    },
+    filters: {
+        type: Object,
+        default: () => ({
+            start_date: "",
+            end_date: "",
+            per_page: 10,
+            search: "",
+        }),
     },
     permissions: {
         type: Object,
@@ -36,15 +44,18 @@ const props = defineProps({
             canCreate: false,
             canEdit: false,
             canDelete: false,
-            canView: true
-        })
-    }
+            canView: true,
+        }),
+    },
 });
 
 // State
-const search = ref('');
-const sortField = ref('tgl_ns');
-const sortDirection = ref('desc');
+const search = ref(props.filters.search || "");
+const startDate = ref(props.filters.start_date || "");
+const endDate = ref(props.filters.end_date || "");
+const perPage = ref(props.filters.per_page || 10);
+const sortField = ref("tgl_ns");
+const sortDirection = ref("desc");
 
 // Modal states
 const showCreateModal = ref(false);
@@ -54,9 +65,9 @@ const showViewModal = ref(false);
 const selectedSurat = ref(null);
 
 // File state
-const previewUrl = ref('');
+const previewUrl = ref("");
 const fileInput = ref(null);
-const uploadMethod = ref('file');
+const uploadMethod = ref("file");
 const video = ref(null);
 const imageCaptured = ref(false);
 const capturedImage = ref(null);
@@ -64,33 +75,34 @@ let stream = null;
 
 // Forms
 const createForm = useForm({
-    no_surat: '',
-    tgl_ns: '',
-    penerima: '',
-    pengirim: '',
-    perihal: '',
-    lampiran: null
+    no_surat: "",
+    tgl_ns: "",
+    penerima: "",
+    pengirim: "",
+    perihal: "",
+    lampiran: null,
 });
 
 const editForm = useForm({
-    tgl_ns: '',
-    penerima: '',
-    pengirim: '',
-    perihal: ''
+    tgl_ns: "",
+    penerima: "",
+    pengirim: "",
+    perihal: "",
 });
 
 // Computed
 const filteredAndSortedSuratKeluar = computed(() => {
-    let filtered = [...props.suratKeluar];
+    let filtered = [...props.suratKeluar.data];
 
     // Apply search filter
     if (search.value) {
         const searchTerm = search.value.toLowerCase();
-        filtered = filtered.filter(surat =>
-            surat.no_surat?.toLowerCase().includes(searchTerm) ||
-            surat.perihal?.toLowerCase().includes(searchTerm) ||
-            surat.pengirim?.toLowerCase().includes(searchTerm) ||
-            surat.penerima?.toLowerCase().includes(searchTerm)
+        filtered = filtered.filter(
+            (surat) =>
+                surat.no_surat?.toLowerCase().includes(searchTerm) ||
+                surat.perihal?.toLowerCase().includes(searchTerm) ||
+                surat.pengirim?.toLowerCase().includes(searchTerm) ||
+                surat.penerima?.toLowerCase().includes(searchTerm)
         );
     }
 
@@ -99,12 +111,12 @@ const filteredAndSortedSuratKeluar = computed(() => {
         let aVal = a[sortField.value];
         let bVal = b[sortField.value];
 
-        if (typeof aVal === 'string') {
+        if (typeof aVal === "string") {
             aVal = aVal.toLowerCase();
             bVal = bVal.toLowerCase();
         }
 
-        if (sortDirection.value === 'asc') {
+        if (sortDirection.value === "asc") {
             return aVal > bVal ? 1 : -1;
         }
         return aVal < bVal ? 1 : -1;
@@ -114,28 +126,37 @@ const filteredAndSortedSuratKeluar = computed(() => {
 });
 
 // Methods
+const updateFilters = () => {
+    router.get(route("surat-keluar.index"), {
+        search: search.value,
+        start_date: startDate.value,
+        end_date: endDate.value,
+        per_page: perPage.value,
+    });
+};
+
 const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
         createForm.lampiran = file;
 
-        if (file.type.startsWith('image/')) {
+        if (file.type.startsWith("image/")) {
             previewUrl.value = URL.createObjectURL(file);
         } else {
-            previewUrl.value = '';
+            previewUrl.value = "";
         }
     }
 };
 
 const submitCreate = () => {
-    createForm.post(route('surat-keluar.store'), {
+    createForm.post(route("surat-keluar.store"), {
         preserveScroll: true,
         onSuccess: () => {
             showCreateModal.value = false;
             createForm.reset();
-            previewUrl.value = '';
+            previewUrl.value = "";
             if (fileInput.value) {
-                fileInput.value.value = '';
+                fileInput.value.value = "";
             }
         },
     });
@@ -151,7 +172,7 @@ const editSurat = (surat) => {
 };
 
 const submitEdit = () => {
-    editForm.put(route('surat-keluar.update', selectedSurat.value.id), {
+    editForm.put(route("surat-keluar.update", selectedSurat.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showEditModal.value = false;
@@ -172,7 +193,7 @@ const confirmDelete = (surat) => {
 };
 
 const submitDelete = () => {
-    useForm({}).delete(route('surat-keluar.destroy', selectedSurat.value.id), {
+    useForm({}).delete(route("surat-keluar.destroy", selectedSurat.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showDeleteModal.value = false;
@@ -183,93 +204,35 @@ const submitDelete = () => {
 
 const toggleSort = (field) => {
     if (sortField.value === field) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+        sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
     } else {
         sortField.value = field;
-        sortDirection.value = 'asc';
+        sortDirection.value = "asc";
     }
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return '-';
+    if (!dateString) return "-";
 
-    const parts = dateString.split('-');
+    const parts = dateString.split("-");
     if (parts.length !== 3) return dateString;
 
     const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
     if (isNaN(date.getTime())) return dateString;
 
-    return date.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
+    return date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
     });
 };
 
-// Camera handling
-watch(uploadMethod, async (newValue) => {
-    if (newValue === 'camera') {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: isMobile() ? 'environment' : 'user' }
-            });
-            if (video.value) {
-                video.value.srcObject = stream;
-            }
-        } catch (err) {
-            console.error('Error accessing camera:', err);
-        }
-    } else {
-        stopCamera();
-    }
-});
-
-const isMobile = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
-
-const stopCamera = () => {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-    if (video.value) {
-        video.value.srcObject = null;
-    }
-};
-
-const captureImage = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.value.videoWidth;
-    canvas.height = video.value.videoHeight;
-    canvas.getContext('2d').drawImage(video.value, 0, 0);
-    capturedImage.value = canvas.toDataURL('image/jpeg');
-    imageCaptured.value = true;
-};
-
-const retakePhoto = () => {
-    imageCaptured.value = false;
-    capturedImage.value = null;
-};
-
-const usePhoto = () => {
-    fetch(capturedImage.value)
-        .then(res => res.blob())
-        .then(blob => {
-            const file = new File([blob], "captured-image.jpg", { type: "image/jpeg" });
-            createForm.lampiran = file;
-            previewUrl.value = URL.createObjectURL(file);
-        });
-    stopCamera();
-};
-
-onBeforeUnmount(() => {
-    if (previewUrl.value) {
-        URL.revokeObjectURL(previewUrl.value);
-    }
-    stopCamera();
+// Watchers
+watch([search, startDate, endDate, perPage], () => {
+    updateFilters();
 });
 </script>
+
 
 <template>
     <AuthenticatedLayout>
@@ -293,109 +256,120 @@ onBeforeUnmount(() => {
 
         <div class="py-6">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <!-- Search -->
+                <!-- Search and Filters Section -->
                 <div class="mb-6 bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row gap-4">
-                    <div class="relative flex-1">
-                        <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="text"
-                            v-model="search"
-                            placeholder="Cari surat keluar..."
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
+                    <div class="flex-1 flex flex-col sm:flex-row gap-4">
+                        <!-- Search input -->
+                        <div class="relative flex-1">
+                            <MagnifyingGlassIcon class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                v-model="search"
+                                placeholder="Cari surat keluar..."
+                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+
+                        <!-- Date range filter -->
+                        <div class="flex items-center space-x-2">
+                            <input
+                                type="date"
+                                v-model="startDate"
+                                class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <span class="text-gray-500">to</span>
+                            <input
+                                type="date"
+                                v-model="endDate"
+                                class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+
+                        <!-- Entries per page dropdown -->
+                        <div class="flex items-center space-x-2">
+                            <select
+                                v-model="perPage"
+                                class="border border-gray-300 rounded-lg py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="10">10</option>
+                                <option value="15">15</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Table -->
+                <!-- Table Section -->
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                                <th @click="toggleSort('no_surat')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    No. Surat
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pengirim</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penerima</th>
-                                <th @click="toggleSort('tgl_ns')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    Tanggal
-                                </th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-                            </tr>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                    <th @click="toggleSort('no_surat')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">No. Surat</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Perihal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pengirim</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penerima</th>
+                                    <th @click="toggleSort('tgl_ns')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">Tanggal</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                            <tr v-for="(surat, index) in filteredAndSortedSuratKeluar"
-                                :key="surat.id"
-                                class="hover:bg-gray-50 transition-colors"
-                            >
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ index + 1 }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ surat.no_surat }}</div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900 line-clamp-2">{{ surat.perihal }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ surat.pengirim }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-900">{{ surat.penerima }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-500">{{ formatDate(surat.tgl_ns) }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button
-                                            @click="viewSurat(surat)"
-                                            class="text-blue-600 hover:text-blue-900"
-                                            title="Lihat detail"
-                                        >
-                                            <EyeIcon class="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            v-if="permissions.canEdit"
-                                            @click="editSurat(surat)"
-                                            class="text-yellow-600 hover:text-yellow-900"
-                                            title="Edit surat"
-                                        >
-                                            <PencilSquareIcon class="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            v-if="permissions.canDelete"
-                                            @click="confirmDelete(surat)"
-                                            class="text-red-600 hover:text-red-900"
-                                            title="Hapus surat"
-                                        >
-                                            <TrashIcon class="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                <tr v-for="(surat, index) in filteredAndSortedSuratKeluar" :key="surat.id" class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ (props.suratKeluar.current_page - 1) * props.suratKeluar.per_page + index + 1 }}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">{{ surat.no_surat }}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900 line-clamp-2">{{ surat.perihal }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ surat.pengirim }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ surat.penerima }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-500">{{ formatDate(surat.tgl_ns) }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @click="viewSurat(surat)" class="text-blue-600 hover:text-blue-900" title="Lihat detail">
+                                                <EyeIcon class="w-5 h-5" />
+                                            </button>
+                                            <button v-if="permissions.canEdit" @click="editSurat(surat)" class="text-yellow-600 hover:text-yellow-900" title="Edit surat">
+                                                <PencilSquareIcon class="w-5 h-5" />
+                                            </button>
+                                            <button v-if="permissions.canDelete" @click="confirmDelete(surat)" class="text-red-600 hover:text-red-900" title="Hapus surat">
+                                                <TrashIcon class="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
+                <!-- Pagination -->
+                <div class="mt-4 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <Pagination :links="props.suratKeluar.links" />
+                </div>
+
                 <!-- Empty State -->
                 <div v-if="filteredAndSortedSuratKeluar.length === 0" class="text-center py-12 bg-white rounded-lg shadow mt-6">
                     <EnvelopeIcon class="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">
-                        Tidak ada surat keluar
-                    </h3>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ada surat keluar</h3>
                     <p class="mt-1 text-sm text-gray-500">
-                        {{ search ? 'Tidak ada surat yang sesuai dengan pencarian.' : 'Mulai dengan menambahkan surat keluar baru.' }}
+                        {{ search ? "Tidak ada surat yang sesuai dengan pencarian." : "Mulai dengan menambahkan surat keluar baru." }}
                     </p>
                     <div class="mt-6">
-                        <button
-                            v-if="permissions.canCreate"
-                            @click="showCreateModal = true"
-                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                        >
+                        <button v-if="permissions.canCreate" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                             <PlusIcon class="-ml-1 mr-2 h-5 w-5" />
                             Tambah Surat Keluar
                         </button>
@@ -482,7 +456,7 @@ onBeforeUnmount(() => {
                                     v-model="uploadMethod"
                                     value="file"
                                     class="form-radio text-blue-600"
-                                >
+                                />
                                 <span class="ml-2">Upload File</span>
                             </label>
                             <label class="flex items-center">
@@ -491,7 +465,7 @@ onBeforeUnmount(() => {
                                     v-model="uploadMethod"
                                     value="camera"
                                     class="form-radio text-blue-600"
-                                >
+                                />
                                 <span class="ml-2">Ambil Foto</span>
                             </label>
                         </div>
@@ -514,7 +488,11 @@ onBeforeUnmount(() => {
                                 <span>Pilih File</span>
                             </label>
                             <p class="mt-1 text-sm text-gray-500">
-                                {{ createForm.lampiran ? createForm.lampiran.name : 'Tidak ada file dipilih' }}
+                                {{
+                                    createForm.lampiran
+                                        ? createForm.lampiran.name
+                                        : "Tidak ada file dipilih"
+                                }}
                             </p>
                         </div>
 
@@ -584,7 +562,7 @@ onBeforeUnmount(() => {
                     :disabled="createForm.processing"
                     @click="submitCreate"
                 >
-                    {{ createForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                    {{ createForm.processing ? "Menyimpan..." : "Simpan" }}
                 </PrimaryButton>
             </template>
         </Modal>
@@ -652,7 +630,7 @@ onBeforeUnmount(() => {
                     :disabled="editForm.processing"
                     @click="submitEdit"
                 >
-                    {{ editForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                    {{ editForm.processing ? "Menyimpan..." : "Simpan" }}
                 </PrimaryButton>
             </template>
         </Modal>
@@ -714,7 +692,7 @@ onBeforeUnmount(() => {
             <div class="p-6">
                 <ExclamationTriangleIcon class="h-12 w-12 text-red-600 mx-auto" />
                 <p class="mt-4 text-center text-gray-700">
-                    Apakah Anda yakin ingin menghapus surat keluar ini?<br>
+                    Apakah Anda yakin ingin menghapus surat keluar ini?<br />
                     <span class="font-medium">Tindakan ini tidak dapat dibatalkan.</span>
                 </p>
             </div>
@@ -761,4 +739,3 @@ tr {
     background: #555;
 }
 </style>
-
