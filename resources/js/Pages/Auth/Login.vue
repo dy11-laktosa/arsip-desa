@@ -62,7 +62,7 @@ const submit = () => {
                     required
                     autofocus
                     autocomplete="username"
-                    placeholder="Masukkan username anda"
+                    placeholder="Masukkan nama pengguna anda"
                 />
                 <InputError :message="form.errors.username" class="mt-1" />
             </div>
@@ -76,7 +76,7 @@ const submit = () => {
                     class="block w-full text-sm"
                     required
                     autocomplete="current-password"
-                    placeholder="Masukkan password anda"
+                    placeholder="Masukkan kata sandi anda"
                 />
                 <InputError :message="form.errors.password" class="mt-1" />
             </div>

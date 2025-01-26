@@ -743,7 +743,7 @@ watch(showEditModal, (newValue) => {
         </Modal>
 
         <!-- Edit Modal -->
-        <Modal :show="showEditModal" title="Edit Surat Keluar" @close="showEditModal = false">
+        <Modal :show="showEditModal" title="Ubah Surat Keluar" @close="showEditModal = false">
             <form @submit.prevent="submitEdit" class="space-y-4">
                 <div>
                     <InputLabel for="edit_tgl_ns" value="Tanggal Surat" />
@@ -811,40 +811,63 @@ watch(showEditModal, (newValue) => {
         </Modal>
 
         <!-- View Modal -->
-        <Modal :show="showViewModal" title="Detail Surat Keluar" @close="showViewModal = false">
+        <Modal
+        :show="showViewModal"
+        title="Detail Surat Keluar"
+        @close="showViewModal = false">
+
             <div class="space-y-4" v-if="selectedSurat">
                 <div>
-                    <h4 class="text-sm font-medium text-gray-500">Nomor Surat</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.no_surat }}</p>
+                    <h4 class="text-sm font-medium text-gray-500">
+                        Nomor Surat</h4>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.no_surat }}
+                    </p>
                 </div>
 
                 <div>
-                    <h4 class="text-sm font-medium text-gray-500">Tanggal Surat</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedSurat.tgl_ns) }}</p>
+                    <h4 class="text-sm font-medium text-gray-500">
+                        Tanggal Surat</h4>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ formatDate(selectedSurat.tgl_ns) }}
+                    </p>
                 </div>
 
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Pengirim</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.pengirim }}</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.pengirim }}</p>
                 </div>
 
                 <div>
-                    <h4 class="text-sm font-medium text-gray-500">Penerima</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.penerima }}</p>
+                    <h4 class="text-sm font-medium text-gray-500">
+                        Penerima</h4>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.penerima }}</p>
                 </div>
 
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Perihal</h4>
-                    <p class="mt-1 text-sm text-gray-900">{{ selectedSurat.perihal }}</p>
+                    <p class="mt-1 text-sm text-gray-900">
+                        {{ selectedSurat.perihal }}</p>
                 </div>
 
-                <div v-if="selectedSurat.lampiran">
+                <div v-if="
+                selectedSurat.lampiran &&
+                selectedSurat.lampiran.length > 0">
+
+
                     <h4 class="text-sm font-medium text-gray-500">Lampiran</h4>
                     <div class="mt-1 flex items-center space-x-2">
                         <DocumentIcon class="h-5 w-5 text-gray-400" />
-                        <span class="text-sm text-gray-900">{{ selectedSurat.lampiran.nama_berkas }}</span>
+                        <span class="text-sm text-gray-900">
+                            {{ selectedSurat.lampiran[0].nama_berkas
+                            }}</span>
                         <a
-                            :href="route('surat-keluar.download-lampiran', selectedSurat.id)"
+                            :href="route
+                            ('surat-keluar.download-lampiran',
+                            selectedSurat.id)"
+
                             class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
                             download
                         >
@@ -868,7 +891,7 @@ watch(showEditModal, (newValue) => {
                 <ExclamationTriangleIcon class="h-12 w-12 text-red-600 mx-auto" />
                 <p class="mt-4 text-center text-gray-700">
                     Apakah Anda yakin ingin menghapus surat keluar ini?<br />
-                    <span class="font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+                    <span class="font-medium">Jika Tidak Tekan Batal!</span>
                 </p>
             </div>
 

@@ -832,7 +832,7 @@ watch(showEditModal, (newValue) => {
         <!-- Edit Modal -->
         <Modal
             :show="showEditModal"
-            title="Edit Surat Masuk"
+            title="Ubah Surat Masuk"
             @close="showEditModal = false"
         >
             <form @submit.prevent="submitEdit" class="space-y-4">
@@ -996,7 +996,7 @@ watch(showEditModal, (newValue) => {
                 <p class="mt-4 text-center text-gray-700">
                     Apakah Anda yakin ingin menghapus surat masuk ini?<br />
                     <span class="font-medium"
-                        >Tindakan ini tidak dapat dibatalkan.</span
+                        >Jika Tidak Tekan Batal!</span
                     >
                 </p>
             </div>
