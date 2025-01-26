@@ -343,7 +343,6 @@ const handlePageChange = (url) => {
     }
 };
 
-
 const resetUploadState = () => {
     uploadMethod.value = "file";
     previewUrl.value = "";

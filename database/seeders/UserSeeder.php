@@ -36,7 +36,7 @@ class UserSeeder extends Seeder
 
         // Create Kaur Umum account
         $kaurUmum = User::create([
-            'username' => 'kaur',
+            'username' => 'kaurumum',
             'password' => Hash::make('kaur123'), // You should change this password
             'nama_lengkap' => 'Kaur Umum',
             'email' => 'kaur@umum.id',
