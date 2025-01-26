@@ -76,7 +76,7 @@ class SuratKeluarController extends Controller
             })
             ->orderBy('id', 'DESC');
 
-        $suratKeluar = $query->paginate($perPage);
+        $suratKeluar = $query->paginate($perPage, ['*'], 'page', $page);
 
         return Inertia::render('SuratKeluar/Index', [
             'suratKeluar' => $suratKeluar,
@@ -86,6 +86,7 @@ class SuratKeluarController extends Controller
                 'end_date' => $endDate,
                 'per_page' => $perPage,
                 'search' => $search,
+                'page' => $page
             ],
         ]);
 }
@@ -119,7 +120,6 @@ class SuratKeluarController extends Controller
             'perihal' => $request->perihal,
             'token_lampiran' => $token,
             'user_id' => Auth::id(),
-            'peringatan' => 0,
             'tgl_sk' => now()->format('d-m-Y')
         ]);
 
@@ -149,7 +149,22 @@ class SuratKeluarController extends Controller
 
         return Inertia::render('SuratKeluar/Show', [
             'suratKeluar' => $suratKeluar->load(['user', 'lampiran']),
-            'permissions' => $this->checkPermissions($suratKeluar)
+            'canEdit' => $this->isSekdes()
+        ]);
+    }
+
+    /**
+     * Show the form for editing an incoming letter.
+     */
+    public function edit(SuratKeluar $suratKeluar)
+    {
+        $this->authorize('update', $suratKeluar);
+
+        $users = User::orderBy('nama_lengkap')->get();
+
+        return Inertia::render('SuratMasuk/Edit', [
+            'suratKeluar' => $suratKeluar->load(['user', 'lampiran']),
+            'users' => $users
         ]);
     }
 
@@ -166,7 +181,7 @@ class SuratKeluarController extends Controller
             'tgl_ns' => 'required|date',
             'penerima' => 'required|string',
             'pengirim' => 'required|string',
-            'perihal' => 'required'
+            'perihal' => 'required',
         ]);
 
         $suratKeluar->update([

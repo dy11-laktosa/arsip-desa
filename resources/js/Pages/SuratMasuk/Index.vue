@@ -109,7 +109,8 @@ const filteredSuratMasuk = computed(() => {
         (surat) =>
             surat.no_surat?.toLowerCase().includes(searchTerm) ||
             surat.perihal?.toLowerCase().includes(searchTerm) ||
-            surat.pengirim?.toLowerCase().includes(searchTerm)
+            surat.pengirim?.toLowerCase().includes(searchTerm) ||
+            surat.penerima?.toLowerCase().includes(searchTerm)
     );
 });
 
@@ -174,6 +175,7 @@ const submitCreate = () => {
             if (fileInput.value) {
                 fileInput.value.value = "";
             }
+            stopCamera();
         },
     });
 };
@@ -231,8 +233,10 @@ const toggleSort = (field) => {
 const formatDate = (dateString) => {
     if (!dateString) return "-";
     const parts = dateString.split("-");
+
     if (parts.length !== 3) return dateString;
     const date = new Date(`${parts[1]}-${parts[2]}-${parts[0]}`);
+
     if (isNaN(date.getTime())) return dateString;
     return date.toLocaleDateString("id-ID", {
         day: "2-digit",
@@ -329,6 +333,29 @@ const handlePageChange = (url) => {
         updateFilters();
     }
 };
+
+const resetUploadState = () => {
+    uploadMethod.value = "file";
+    previewUrl.value = "";
+    capturedImage.value = null;
+    imageCaptured.value = false;
+    if (fileInput.value) {
+        fileInput.value.value = "";
+    }
+    stopCamera();
+};
+
+watch(showCreateModal, (newValue) => {
+    if (!newValue) {
+        resetUploadState();
+    }
+});
+
+watch(showEditModal, (newValue) => {
+    if (!newValue) {
+        resetUploadState();
+    }
+});
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Modal from "@/Components/Modal.vue";
@@ -53,9 +53,11 @@ const props = defineProps({
 const search = ref(props.filters.search || "");
 const startDate = ref(props.filters.start_date || "");
 const endDate = ref(props.filters.end_date || "");
-const perPage = ref(props.filters.per_page || 10);
+const perPage = ref(props.filters.per_page?.toString() || 10);
 const sortField = ref("tgl_ns");
 const sortDirection = ref("desc");
+const current_page = ref(props.suratKeluar.current_page || 1);
+
 
 // Modal states
 const showCreateModal = ref(false);
@@ -72,6 +74,14 @@ const video = ref(null);
 const imageCaptured = ref(false);
 const capturedImage = ref(null);
 let stream = null;
+
+// Pagination options
+const perPageOptions = [
+    { label: "10", value: "10" },
+    { label: "15", value: "15" },
+    { label: "25", value: "25" },
+    { label: "50", value: "50" },
+];
 
 // Forms
 const createForm = useForm({
@@ -92,12 +102,10 @@ const editForm = useForm({
 
 // Computed
 const filteredAndSortedSuratKeluar = computed(() => {
-    let filtered = [...props.suratKeluar.data];
+    if (search.value) return props.suratKeluar.data;{
 
-    // Apply search filter
-    if (search.value) {
         const searchTerm = search.value.toLowerCase();
-        filtered = filtered.filter(
+        return props.suratKeluar.data.filter(
             (surat) =>
                 surat.no_surat?.toLowerCase().includes(searchTerm) ||
                 surat.perihal?.toLowerCase().includes(searchTerm) ||
@@ -132,7 +140,22 @@ const updateFilters = () => {
         start_date: startDate.value,
         end_date: endDate.value,
         per_page: perPage.value,
+        page: current_page.value,
     });
+};
+
+const goToPreviousPage = () => {
+    if (currentPage.value > 1) {
+        currentPage.value--;
+        updateFilters();
+    }
+};
+
+const goToNextPage = () => {
+    if (currentPage.value < props.suratKeluar.last_page) {
+        currentPage.value++;
+        updateFilters();
+    }
 };
 
 const handleFileChange = (e) => {
@@ -154,10 +177,13 @@ const submitCreate = () => {
         onSuccess: () => {
             showCreateModal.value = false;
             createForm.reset();
+            capturedImage.value = null;
             previewUrl.value = "";
+            imageCaptured.value = false;
             if (fileInput.value) {
                 fileInput.value.value = "";
             }
+            stopCamera();
         },
     });
 };
@@ -209,6 +235,7 @@ const toggleSort = (field) => {
         sortField.value = field;
         sortDirection.value = "asc";
     }
+    updateFilters();
 };
 
 const formatDate = (dateString) => {
@@ -217,7 +244,7 @@ const formatDate = (dateString) => {
     const parts = dateString.split("-");
     if (parts.length !== 3) return dateString;
 
-    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    const date = new Date(`${parts[1]}-${parts[2]}-${parts[0]}`);
     if (isNaN(date.getTime())) return dateString;
 
     return date.toLocaleDateString("id-ID", {
@@ -227,10 +254,119 @@ const formatDate = (dateString) => {
     });
 };
 
+// Camera handling
+const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+};
+
+const stopCamera = () => {
+    if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+    }
+    if (video.value) {
+        video.value.srcObject = null;
+    }
+};
+
+const captureImage = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = video.value.videoWidth;
+    canvas.height = video.value.videoHeight;
+    canvas.getContext("2d").drawImage(video.value, 0, 0);
+    capturedImage.value = canvas.toDataURL("image/jpeg");
+    imageCaptured.value = true;
+};
+
+const retakePhoto = () => {
+    imageCaptured.value = false;
+    capturedImage.value = null;
+};
+
+const usePhoto = () => {
+    fetch(capturedImage.value)
+        .then((res) => res.blob())
+        .then((blob) => {
+            const file = new File([blob], "captured-image.jpg", {
+                type: "image/jpeg",
+            });
+            createForm.lampiran = file;
+            previewUrl.value = URL.createObjectURL(file);
+        });
+    stopCamera();
+};
+
 // Watchers
-watch([search, startDate, endDate, perPage], () => {
+watch(uploadMethod, async (newValue) => {
+    if (newValue === "camera") {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: isMobile() ? "environment" : "user" },
+            });
+            if (video.value) {
+                video.value.srcObject = stream;
+            }
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+        }
+    } else {
+        stopCamera();
+    }
+});
+
+let searchTimeout;
+watch(search, (newValue) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        updateFilters();
+    }, 300); // Debounce search for 300ms
+});
+
+watch([perPage, startDate, endDate], () => {
     updateFilters();
 });
+
+onBeforeUnmount(() => {
+    if (previewUrl.value) {
+        URL.revokeObjectURL(previewUrl.value);
+    }
+    stopCamera();
+});
+
+const handlePageChange = (url) => {
+    const page = new URL(url).searchParams.get('page');
+    if (page) {
+        current_page.value = parseInt(page);
+        updateFilters();
+    }
+};
+
+
+const resetUploadState = () => {
+    uploadMethod.value = "file";
+    previewUrl.value = "";
+    capturedImage.value = null;
+    imageCaptured.value = false;
+    if (fileInput.value) {
+        fileInput.value.value = "";
+    }
+    stopCamera();
+};
+
+watch(showCreateModal, (newValue) => {
+    if (!newValue) {
+        resetUploadState();
+    }
+});
+
+watch(showEditModal, (newValue) => {
+    if (!newValue) {
+        resetUploadState();
+    }
+});
+
 </script>
 
 
@@ -291,10 +427,13 @@ watch([search, startDate, endDate, perPage], () => {
                                 v-model="perPage"
                                 class="border border-gray-300 rounded-lg py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option value="10">10</option>
-                                <option value="15">15</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
+                            <option
+                                    v-for="option in perPageOptions"
+                                    :key="option.value"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
                             </select>
                         </div>
                     </div>
@@ -358,8 +497,45 @@ watch([search, startDate, endDate, perPage], () => {
 
                 <!-- Pagination -->
                 <div class="mt-4 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                    <Pagination :links="props.suratKeluar.links" />
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        <button
+                            @click="goToPreviousPage"
+                            :disabled="currentPage === 1"
+                            class="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            @click="goToNextPage"
+                            :disabled="currentPage === totalPages"
+                            class="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div
+                        class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between"
+                    >
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Showing
+                                <span class="font-medium">{{
+                                    suratKeluar.from
+                                }}</span>
+                                to
+                                <span class="font-medium">{{
+                                    suratKeluar.to
+                                }}</span>
+                                of
+                                <span class="font-medium">{{
+                                    suratKeluar.total
+                                }}</span>
+                                results
+                            </p>
+                        </div>
+                    <Pagination :links="props.suratKeluar.links" @page-change="handlePageChange"/>
                 </div>
+            </div>
 
                 <!-- Empty State -->
                 <div v-if="filteredAndSortedSuratKeluar.length === 0" class="text-center py-12 bg-white rounded-lg shadow mt-6">

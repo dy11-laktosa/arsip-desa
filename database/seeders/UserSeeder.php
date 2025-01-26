@@ -34,15 +34,15 @@ class UserSeeder extends Seeder
             'user_id' => $sekdes->id
         ]);
 
-        // Create Admin Desa account
-        $adminDesa = User::create([
-            'username' => 'admindesa',
-            'password' => Hash::make('admin123'), // You should change this password
-            'nama_lengkap' => 'Admin Desa',
-            'email' => 'admin@desa.id',
+        // Create Kaur Umum account
+        $kaurUmum = User::create([
+            'username' => 'kaur',
+            'password' => Hash::make('kaur123'), // You should change this password
+            'nama_lengkap' => 'Kaur Umum',
+            'email' => 'kaur@umum.id',
             'alamat' => 'Alamat Desa',
             'telp' => '08198765432',
-            'pengalaman' => 'Admin Sistem Desa',
+            'pengalaman' => 'kaur umum Periode 2024-2029',
             'level' => 'admin',
             'status' => 'aktif',
             'tgl_daftar' => now()->format('d-m-Y H:i:s')
@@ -50,8 +50,8 @@ class UserSeeder extends Seeder
 
         // Create department for Admin
         Bagian::create([
-            'nama_bagian' => 'sekdes',
-            'user_id' => $adminDesa->id
+            'nama_bagian' => 'kaur umum',
+            'user_id' => $kaurUmum->id
         ]);
     }
 }
